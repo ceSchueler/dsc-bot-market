@@ -36,18 +36,18 @@ class HorseAdmin(commands.Cog):
     @commands.command(name="sethorsechannel")
     @commands.has_permissions(manage_channels=True)
     async def sethorsechannel(self, ctx: commands.Context) -> None:
-        """
-        Set the current channel as a horse trading channel.
-        
-        Args:
-            ctx (commands.Context): The command context
-        """
-
         try:
             config = load_config()
-            config["horsechannel"] = config.get("horsechannels", {})
-            config["horsechannel"][str(ctx.channel.id)] = ctx.channel.name
+            if "horsechannels" not in config:
+                config["horsechannels"] = {}
+            config["horsechannels"][str(ctx.channel.id)] = ctx.channel.name
             save_config(config)
+            
+            # Reload configuration in Trading cog
+            trading_cog = self.bot.get_cog('Trading')
+            if trading_cog:
+                trading_cog.reload_config()
+            
             await ctx.send(f"✅ This channel is now configured for horse trading.")
         except Exception as e:
             await ctx.send(f"❌ An error occurred: {str(e)}", ephemeral=True)

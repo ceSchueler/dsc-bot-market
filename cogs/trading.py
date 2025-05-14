@@ -23,6 +23,30 @@ class Trading(commands.Cog):
         self.logchannel = config.get("log_channel")
         self.horse_channels = config.get("horsechannels", {})
 
+    def reload_config(self):
+        config = load_config()
+        self.finished_horses = set(config.get("closed_channels", []))
+        self.transaction_counter = config.get("trade_counter", 1)
+        self.logchannel = config.get("log_channel")
+        self.horse_channels = config.get("horsechannels", {})
+
+    def load_offers(self) -> None:
+        """Load offers from the JSON file."""
+        if os.path.exists(OFFERS_FILE):
+            try:
+                with open(OFFERS_FILE, 'r') as f:
+                    saved_offers = json.load(f)
+
+                # Convert saved data back to Offer objects
+                for channel_id, offers in saved_offers.items():
+                    self.offers[int(channel_id)] = [
+                        Offer(None, offer['user_id'], offer['offer_type'], offer['price'])
+                        for offer in offers
+                        if offer['active']  # Only load active offers
+                    ]
+            except (json.JSONDecodeError, FileNotFoundError):
+                self.offers = {}
+
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if (message.author.bot or
