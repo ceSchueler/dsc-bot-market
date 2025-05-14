@@ -33,34 +33,26 @@ class HorseAdmin(commands.Cog):
         """
         self.bot = bot
 
-    @commands.command(name="sethorse")
+    @commands.command(name="sethorsechannel")
     @commands.has_permissions(manage_channels=True)
-    async def sethorse(self, ctx: commands.Context, letter: str) -> None:
+    async def sethorsechannel(self, ctx: commands.Context) -> None:
         """
         Set the current channel as a horse trading channel.
         
         Args:
             ctx (commands.Context): The command context
-            letter (str): The horse letter to assign to this channel
         """
-        letter = letter.upper()
-        if letter not in HORSE_EMOJIS:
-            await ctx.send(
-                f"Invalid horse letter. Please use one of: {', '.join(HORSE_EMOJIS.keys())}",
-                ephemeral=True
-            )
-            return
 
         try:
             config = load_config()
-            config["horses"] = config.get("horses", {})
-            config["horses"][str(ctx.channel.id)] = letter
+            config["horsechannel"] = config.get("horsechannels", {})
+            config["horsechannel"][str(ctx.channel.id)] = ctx.channel.name
             save_config(config)
-            await ctx.send(f"✅ This channel is now for Horse {letter} {HORSE_EMOJIS[letter]} trading.")
+            await ctx.send(f"✅ This channel is now configured for horse trading.")
         except Exception as e:
             await ctx.send(f"❌ An error occurred: {str(e)}", ephemeral=True)
 
-    @commands.command(name="closehorse")
+    @commands.command(name="close")
     @commands.has_permissions(manage_channels=True)
     async def closehorse(self, ctx: commands.Context) -> None:
         """
@@ -84,7 +76,7 @@ class HorseAdmin(commands.Cog):
             await ctx.send(f"❌ An error occurred: {str(e)}", ephemeral=True)
 
     @commands.command(name="setlogchannel")
-    @commands.has_permissions(administrator=True)
+    #@commands.has_permissions(administrator=True)
     async def setlogchannel(self, ctx: commands.Context) -> None:
         """
         Set the current channel as the central transaction log.
@@ -96,7 +88,7 @@ class HorseAdmin(commands.Cog):
             config = load_config()
             config["log_channel"] = str(ctx.channel.id)
             save_config(config)
-            await ctx.send("✅ This channel is now set as the transaction log.")
+            await ctx.send("✅ This channel is now set as the log channel.")
         except Exception as e:
             await ctx.send(f"❌ An error occurred: {str(e)}", ephemeral=True)
 

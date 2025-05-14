@@ -13,7 +13,6 @@ class Trading(commands.Cog):
     """
     Handles all trading-related commands and functionality
     """
-
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.trading_manager = TradingManager()
@@ -24,6 +23,7 @@ class Trading(commands.Cog):
         config = load_config()
         self.finished_horses = set(config.get("closed_channels", []))
         self.transaction_counter = config.get("trade_counter", 1)
+        self.logchannel = config.get("log_channel")
 
     @staticmethod
     def parse_offer(content: str) -> Tuple[Optional[str], Optional[int]]:
@@ -100,10 +100,10 @@ class Trading(commands.Cog):
         await match_offer.message.add_reaction('✅')
 
         # Add transaction number emojis
-        emoji_digits = self.emoji_manager.get_number_emoji(self.transaction_counter)
-        for e in emoji_digits:
-            await message.add_reaction(e)
-            await match_offer.message.add_reaction(e)
+        # emoji_digits = self.emoji_manager.get_number_emoji(self.transaction_counter)
+        # for e in emoji_digits:
+        #    await message.add_reaction(e)
+        #    await match_offer.message.add_reaction(e)
 
         # Add flag emoji
         flag_emoji = self.emoji_manager.get_unique_flag()
@@ -112,9 +112,22 @@ class Trading(commands.Cog):
 
         # Send confirmation message
         await message.reply(
-            f"✅ Transaction #{self.transaction_counter:02}: "
+            f"✅ Transaction #{self.transaction_counter:02} {flag_emoji}: "
             f"<@{buyer_id}> buys from <@{seller_id}> for ${final_price}"
         )
+        try:
+            logchannel = self.bot.get_channel(int(self.logchannel))
+            first_msg_link = f"https://discord.com/channels/{message.guild.id}/{match_offer.message.channel.id}/{match_offer.message.id}"
+            second_msg_link = f"https://discord.com/channels/{message.guild.id}/{message.channel.id}/{message.id}"
+            await logchannel.send(
+                f"## {message.channel.name} Transaction #{self.transaction_counter:02} {flag_emoji}\n "
+                f"<@{buyer_id}> buys from <@{seller_id}> for ${final_price}\n"
+                f"-# [Jump to first message]({first_msg_link}) | [Jump to second message]({second_msg_link})"
+
+            )
+        except Exception as e:
+            print(f"Failed to send log message: {e}")
+
 
         # Update transaction counter in config
         self.transaction_counter += 1
@@ -150,6 +163,15 @@ class Trading(commands.Cog):
         if (message.author.bot or
                 isinstance(message.channel, discord.DMChannel) or
                 message.channel.id in self.finished_horses):
+            return
+
+        # Check if the channel is a horse channel
+        if str(message.channel.id) not in self.horse_channels:
+            # Check if the message looks like a trading command
+            offer_type, price = self.parse_offer(message.content)
+            if offer_type is not None:
+                await message.reply(
+                    "⚠️ This channel is not set up for horse trading. An admin needs to use `!sethorsechannel` to enable trading here.")
             return
 
         # Handle cancellation
