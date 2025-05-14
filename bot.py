@@ -5,6 +5,7 @@ from pathlib import Path
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
+from utils.config_utils import load_config
 
 # Configure logging
 logging.basicConfig(
@@ -34,6 +35,11 @@ class TradingBot(commands.Bot):
         self.transaction_counter = 1
         self.ready = False
 
+        # Load config
+        config = load_config()
+        self.logchannel = config.get("log_channel")
+        self.horse_channels = config.get("horsechannels", {})
+
     async def setup_hook(self):
         """
         This is called when the bot is started up
@@ -62,10 +68,12 @@ class TradingBot(commands.Bot):
         Called when the bot is ready and connected to Discord
         """
         if self.ready:
+            await self.notify_channels("Bot is Online again!")
             return
 
         self.ready = True
         logger.info(f'Logged in as {self.user.name} (ID: {self.user.id})')
+        await self.notify_channels("Bot is Online (again)!")
 
         # Set bot presence
         await self.change_presence(
@@ -74,6 +82,25 @@ class TradingBot(commands.Bot):
                 name="horse trading channels"
             )
         )
+
+    async def notify_channels(self, message: str):
+        """Send a message to all horse channels and log channel."""
+        for channel_id in self.horse_channels:
+            try:
+                channel = self.get_channel(channel_id)
+                if channel:
+                    await channel.send(message)
+            except Exception as e:
+                print(f"Failed to send message to channel {channel_id}: {e}")
+
+        # Send to log channel
+        if self.logchannel:
+            try:
+                log_channel = self.get_channel(self.logchannel)
+                if log_channel:
+                    await log_channel.send(message)
+            except Exception as e:
+                print(f"Failed to send message to log channel: {e}")
 
 
 def main():
