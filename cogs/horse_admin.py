@@ -159,6 +159,37 @@ class HorseAdmin(commands.Cog):
             await ctx.send(f"❌ An error occurred: {str(e)}", ephemeral=True)
 
 
+    @commands.command(name="softreset")
+    @commands.has_permissions(manage_channels=True)
+    async def softreset(self, ctx: commands.Context) -> None:
+        """
+        Perform a soft reset that clears transactions and removes closed channels,
+        while preserving other configuration data.
+
+        Args:
+            ctx (commands.Context): The command context
+        """
+        try:
+            # Reset transactions.json to empty array
+            with open('data/transactions.json', 'w') as transactions_file:
+                transactions_file.write('[]')
+
+            # Load and modify config to remove closed channels
+            config = load_config()
+            config["closed_channels"] = []  # Reset closed channels list
+            config["trade_counter"] = 0  # Reset trade counter
+            save_config(config)
+
+            # Reload configuration in Trading cog
+            trading_cog = self.bot.get_cog('Trading')
+            if trading_cog:
+                trading_cog.reload_config()
+
+            await ctx.send("✅ Successfully reset transactions and cleared closed channels.")
+        except Exception as e:
+            await ctx.send(f"❌ An error occurred: {str(e)}", ephemeral=True)
+
+
 async def setup(bot: commands.Bot) -> None:
     """
     Set up the HorseAdmin cog.

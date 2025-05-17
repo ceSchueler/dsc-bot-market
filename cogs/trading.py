@@ -66,11 +66,7 @@ class Trading(commands.Cog):
                 await message.reply("⚠️ This channel is not set up for horse trading. An admin needs to use `!sethorsechannel` to enable trading here.")
             return
 
-        if str(message.channel.id) in self.closed_channels:
-            if message.content.startswith("!open") or message.content.startswith("!sethoreschannel"):
-                return
-            else:
-                await message.reply("⛔ The trading for this channel is closed.")
+        if message.content.startswith("!"):
             return
 
         # Handle cancellation
@@ -150,7 +146,7 @@ class Trading(commands.Cog):
         match_offer.active = False
         buyer_id = message.author.id if offer_type == 'buy' else match_offer.user_id
         seller_id = match_offer.user_id if offer_type == 'buy' else message.author.id
-        final_price = price if offer_type == 'buy' else match_offer.price
+        final_price = match_offer.price
 
         if message.author.id != match_offer.user_id:
             accepts = self.trading_manager.record_accept(message.author.id)
